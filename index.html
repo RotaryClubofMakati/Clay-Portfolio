@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clay Studio — Cinematic Video Editor &amp; Visual Storyteller</title>
+  <meta name="description" content="Clay Studio is the portfolio of Clayton Collado Gaban, a professional video editor specializing in commercials, documentaries, reels and short-form content." />
+  <meta name="theme-color" content="#09090b" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', 'Inter', 'sans-serif'],
+      } } },
+    };
+  </script>
+
+  <style>
+    :root { --amber: #fbbf24; --cyan: #22d3ee; }
+    html { scroll-behavior: smooth; }
+    body { background: #09090b; color: #e4e4e7; -webkit-font-smoothing: antialiased; }
+    section[id] { scroll-margin-top: 80px; }
+
+    .grain::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: .06;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+    .text-gradient { background: linear-gradient(95deg, var(--amber) 0%, #fb923c 45%, var(--cyan) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .glow-amber { box-shadow: 0 0 40px -8px rgba(251,191,36,.45); }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    .thumb {
+      background:
+        radial-gradient(120% 90% at 15% 8%, hsl(var(--h1) 75% 42% / .85), transparent 60%),
+        radial-gradient(100% 80% at 95% 100%, hsl(var(--h2) 75% 34% / .85), transparent 58%),
+        linear-gradient(160deg, #18181b, #09090b);
+    }
+    .thumb::after { content: ""; position: absolute; inset: 0; opacity: .18; mix-blend-mode: overlay; background: repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 4px); }
+    .card:hover .play-btn { transform: scale(1.1); background: var(--amber); color: #09090b; }
+    .card:hover .thumb-inner { transform: scale(1.06); }
+    .thumb-inner { transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .fade-up { animation: fadeUp .45s ease both; }
+
+    #modal.open { display: flex; }
+    body.no-scroll { overflow: hidden; }
+    ::-webkit-scrollbar { width: 10px; } ::-webkit-scrollbar-track { background: #09090b; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; } ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    input:focus, select:focus, textarea:focus { outline: none; }
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 8px; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } .reveal { opacity: 1; transform: none; } }
+  </style>
+</head>
+
+<body class="grain font-sans antialiased">
+
+  <!-- ============ NAV ============ -->
+  <header id="nav" class="fixed top-0 inset-x-0 z-50 transition-all duration-300">
+    <nav class="mx-auto max-w-7xl px-5 sm:px-8 h-16 flex items-center justify-between">
+      <a href="#home" class="flex items-center gap-2.5 group" aria-label="Home">
+        <span id="navLogo" class="grid place-items-center h-9 w-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-zinc-950 font-display font-bold">C</span>
+        <span class="font-display font-semibold tracking-wide text-white"><span data-b1>Clay</span> <span class="text-amber-400" data-b2>Studio</span></span>
+      </a>
+      <ul class="hidden md:flex items-center gap-8 text-sm text-zinc-300">
+        <li><a class="hover:text-amber-400 transition-colors" href="#about">About</a></li>
+        <li><a class="hover:text-amber-400 transition-colors" href="#portfolio">Portfolio</a></li>
+        <li><a class="hover:text-amber-400 transition-colors" href="#contact">Contact</a></li>
+        <li><a href="#contact" class="rounded-full bg-amber-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-amber-300 transition-colors">Book a project</a></li>
+      </ul>
+      <button id="menuBtn" class="md:hidden grid place-items-center h-10 w-10 rounded-lg border border-zinc-800 text-zinc-200" aria-label="Open menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </nav>
+    <div id="mobileMenu" class="hidden md:hidden border-t border-zinc-800 bg-zinc-950/95 backdrop-blur">
+      <ul class="px-5 py-4 space-y-1 text-zinc-200">
+        <li><a class="block rounded-lg px-3 py-3 hover:bg-zinc-900" href="#about">About</a></li>
+        <li><a class="block rounded-lg px-3 py-3 hover:bg-zinc-900" href="#portfolio">Portfolio</a></li>
+        <li><a class="block rounded-lg px-3 py-3 hover:bg-zinc-900" href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <section id="home" class="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-28">
+      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div class="absolute -top-40 -left-32 h-[520px] w-[520px] rounded-full bg-amber-500/15 blur-[120px]"></div>
+        <div class="absolute top-20 -right-40 h-[560px] w-[560px] rounded-full bg-cyan-500/10 blur-[130px]"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.035)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_72%)]"></div>
+      </div>
+
+      <div class="relative mx-auto max-w-7xl px-5 sm:px-8 grid lg:grid-cols-12 gap-14 items-center">
+        <div class="lg:col-span-7 order-2 lg:order-1">
+          <p id="badgeWrap" class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/70 px-3.5 py-1.5 text-xs uppercase tracking-[.2em] text-zinc-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> <span data-t="badge">Available for new projects</span>
+          </p>
+          <h1 class="mt-6 font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight text-white">
+            <span data-b1>Clay</span> <span class="text-gradient" data-b2>Studio</span>
+          </h1>
+          <p class="mt-4 font-display text-xl sm:text-2xl text-zinc-200" data-t="role">Cinematic Video Editor &amp; Visual Storyteller</p>
+          <p class="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-zinc-400">
+            Hi, I'm <span class="text-white font-medium" data-t="ownerName">Clayton Collado Gaban</span>. <span data-t="heroIntro"></span>
+          </p>
+
+          <div class="mt-9 flex flex-wrap gap-3">
+            <a href="#portfolio" class="group inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 font-semibold text-zinc-950 glow-amber hover:bg-amber-300 transition">
+              View Portfolio
+              <svg class="transition-transform group-hover:translate-x-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#contact" class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/60 px-6 py-3 font-semibold text-white hover:border-cyan-400/60 hover:text-cyan-300 transition">Get in Touch</a>
+          </div>
+
+          <dl class="mt-10 grid sm:grid-cols-2 gap-3 max-w-xl text-sm">
+            <a data-phone-link class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 hover:border-amber-400/50 transition">
+              <span class="grid h-9 w-9 place-items-center rounded-lg bg-amber-400/10 text-amber-400">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+              </span>
+              <span><dt class="text-xs text-zinc-500">Phone</dt><dd class="text-zinc-100" data-t="phone"></dd></span>
+            </a>
+            <a data-mail-link class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 hover:border-cyan-400/50 transition">
+              <span class="grid h-9 w-9 place-items-center rounded-lg bg-cyan-400/10 text-cyan-400">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              </span>
+              <span><dt class="text-xs text-zinc-500">Email</dt><dd class="text-zinc-100 break-all" data-t="email"></dd></span>
+            </a>
+          </dl>
+        </div>
+
+        <div class="lg:col-span-5 order-1 lg:order-2 flex justify-center">
+          <div class="relative">
+            <div class="absolute -inset-6 rounded-full bg-gradient-to-tr from-amber-400/30 via-transparent to-cyan-400/30 blur-2xl" aria-hidden="true"></div>
+            <div class="relative h-60 w-60 sm:h-72 sm:w-72 lg:h-80 lg:w-80 rounded-full p-1.5 bg-gradient-to-tr from-amber-400 via-orange-500 to-cyan-400 glow-amber">
+              <div class="relative h-full w-full overflow-hidden rounded-full bg-zinc-900">
+                <img id="avatarImg" src="clayton.jpg" alt="Portrait" referrerpolicy="no-referrer" class="h-full w-full object-cover" />
+                <div id="avatarFallback" class="absolute inset-0 hidden place-items-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+                  <span id="initials" class="font-display text-7xl font-bold text-gradient">CG</span>
+                </div>
+              </div>
+            </div>
+            <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/90 px-4 py-1.5 text-xs tracking-wider text-zinc-300 backdrop-blur">
+              <span class="text-amber-400">●</span> REC &nbsp;<span data-t="ownerName"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section id="about" class="relative py-20 sm:py-28 border-t border-zinc-900">
+      <div class="mx-auto max-w-7xl px-5 sm:px-8 grid lg:grid-cols-12 gap-12">
+        <div class="lg:col-span-5 reveal">
+          <p class="text-xs uppercase tracking-[.25em] text-amber-400">About me</p>
+          <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-white leading-tight" data-t="aboutTitle"></h2>
+          <p class="mt-5 text-zinc-400 leading-relaxed" data-t="aboutP1"></p>
+          <p class="mt-4 text-zinc-400 leading-relaxed" data-t="aboutP2"></p>
+        </div>
+        <div id="skills" class="lg:col-span-7 grid sm:grid-cols-2 gap-4"></div>
+        <div class="lg:col-span-12 reveal">
+          <p class="text-xs uppercase tracking-[.25em] text-zinc-500 mb-4">Industry tools</p>
+          <div id="tools" class="flex flex-wrap gap-2.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PORTFOLIO ============ -->
+    <section id="portfolio" class="relative py-20 sm:py-28 border-t border-zinc-900 bg-gradient-to-b from-zinc-950 via-zinc-950 to-black">
+      <div class="mx-auto max-w-7xl px-5 sm:px-8">
+        <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between reveal">
+          <div>
+            <p class="text-xs uppercase tracking-[.25em] text-amber-400" data-t="portfolioKicker">Selected work</p>
+            <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-white" data-t="portfolioTitle">Portfolio</h2>
+            <p class="mt-3 max-w-lg text-zinc-400" data-t="portfolioSub"></p>
+          </div>
+          <div id="tabs" class="inline-flex self-start rounded-full border border-zinc-800 bg-zinc-900/70 p-1.5" role="tablist" aria-label="Video format">
+            <button data-format="h" role="tab" class="tab-btn flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>
+              Horizontal <span id="count-h" class="rounded-full bg-black/25 px-2 py-0.5 text-xs">0</span>
+            </button>
+            <button data-format="v" role="tab" class="tab-btn flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/></svg>
+              Vertical <span id="count-v" class="rounded-full bg-black/25 px-2 py-0.5 text-xs">0</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="chips" class="mt-8 flex flex-wrap gap-2" aria-label="Filter by category"></div>
+        <div id="grid" class="mt-8 grid gap-4 sm:gap-5" role="tabpanel"></div>
+
+        <div class="mt-10 flex flex-col items-center gap-3">
+          <p id="shownInfo" class="text-sm text-zinc-500"></p>
+          <button id="loadMore" class="rounded-full border border-zinc-700 bg-zinc-900/60 px-7 py-3 text-sm font-semibold text-white hover:border-amber-400/60 hover:text-amber-300 transition">Load more projects</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section id="contact" class="relative overflow-hidden py-20 sm:py-28 border-t border-zinc-900">
+      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div class="absolute bottom-0 left-1/2 h-72 w-[780px] -translate-x-1/2 rounded-full bg-amber-500/10 blur-[110px]"></div>
+      </div>
+      <div class="relative mx-auto max-w-7xl px-5 sm:px-8 grid lg:grid-cols-12 gap-12">
+        <div class="lg:col-span-5 reveal">
+          <p class="text-xs uppercase tracking-[.25em] text-amber-400">Contact &amp; booking</p>
+          <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-white leading-tight" data-t="contactTitle"></h2>
+          <p class="mt-5 text-zinc-400 leading-relaxed" data-t="contactSub"></p>
+          <div class="mt-8 space-y-3">
+            <a data-phone-link class="flex items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 hover:border-amber-400/50 transition">
+              <span class="grid h-11 w-11 place-items-center rounded-xl bg-amber-400/10 text-amber-400">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+              </span>
+              <span><span class="block text-xs text-zinc-500">Call or text</span><span class="text-white font-medium" data-t="phone"></span></span>
+            </a>
+            <a data-mail-link class="flex items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 hover:border-cyan-400/50 transition">
+              <span class="grid h-11 w-11 place-items-center rounded-xl bg-cyan-400/10 text-cyan-400">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              </span>
+              <span><span class="block text-xs text-zinc-500">Email</span><span class="text-white font-medium break-all" data-t="email"></span></span>
+            </a>
+          </div>
+        </div>
+
+        <form id="contactForm" class="lg:col-span-7 reveal rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6 sm:p-8 backdrop-blur" novalidate>
+          <div class="grid sm:grid-cols-2 gap-5">
+            <div>
+              <label for="name" class="mb-2 block text-sm text-zinc-300">Your name</label>
+              <input id="name" name="name" type="text" required autocomplete="name" placeholder="Juan Dela Cruz" class="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white placeholder-zinc-600 focus:border-amber-400 transition" />
+            </div>
+            <div>
+              <label for="email" class="mb-2 block text-sm text-zinc-300">Email</label>
+              <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com" class="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white placeholder-zinc-600 focus:border-amber-400 transition" />
+            </div>
+            <div>
+              <label for="type" class="mb-2 block text-sm text-zinc-300">Project type</label>
+              <select id="type" name="type" class="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white focus:border-amber-400 transition">
+                <option>Horizontal / Landscape video</option>
+                <option>Vertical / Reels &amp; Shorts</option>
+                <option>Both formats</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="deadline" class="mb-2 block text-sm text-zinc-300">Target deadline <span class="text-zinc-600">(optional)</span></label>
+              <input id="deadline" name="deadline" type="date" class="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white focus:border-amber-400 transition [color-scheme:dark]" />
+            </div>
+            <div class="sm:col-span-2">
+              <label for="message" class="mb-2 block text-sm text-zinc-300">Project details</label>
+              <textarea id="message" name="message" rows="5" required placeholder="Tell me about the footage, length, style references and where it'll be published…" class="w-full resize-y rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white placeholder-zinc-600 focus:border-amber-400 transition"></textarea>
+            </div>
+          </div>
+          <p id="formMsg" class="mt-4 hidden text-sm" role="status"></p>
+          <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-xs text-zinc-500">Sending opens your email app with the message pre-filled.</p>
+            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-7 py-3 font-semibold text-zinc-950 glow-amber hover:bg-amber-300 transition">
+              Send inquiry
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="border-t border-zinc-900 bg-black/60">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8 py-10 flex flex-col items-center gap-6 md:flex-row md:justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-zinc-950 font-display font-bold text-sm" id="footLogo">C</span>
+        <span class="font-display font-semibold text-white"><span data-b1>Clay</span> <span class="text-amber-400" data-b2>Studio</span></span>
+      </div>
+      <div id="socials" class="flex items-center gap-3" aria-label="Social links"></div>
+      <p class="text-sm text-zinc-500 text-center">© <span id="year"></span> <span data-b1></span> <span data-b2></span> · <span data-t="ownerName"></span>. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ============ VIDEO MODAL ============ -->
+  <div id="modal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div id="modalBackdrop" class="absolute inset-0 bg-black/85 backdrop-blur-sm"></div>
+    <div class="relative flex max-h-full w-full max-w-4xl flex-col rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+      <div class="flex items-start justify-between gap-4 border-b border-zinc-800 px-5 py-4 sm:px-6">
+        <div class="min-w-0">
+          <span id="modalTag" class="inline-block rounded-full bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300"></span>
+          <h3 id="modalTitle" class="mt-2 truncate font-display text-xl font-semibold text-white"></h3>
+        </div>
+        <button id="modalClose" aria-label="Close preview" class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-zinc-800 text-zinc-300 hover:border-amber-400 hover:text-amber-400 transition">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black p-4 sm:p-6">
+        <div id="stage" class="relative w-full overflow-hidden rounded-xl"></div>
+      </div>
+      <p id="modalDesc" class="hidden border-t border-zinc-800 px-5 py-3 text-sm text-zinc-400 sm:px-6"></p>
+      <div class="flex items-center justify-between gap-3 border-t border-zinc-800 px-5 py-4 sm:px-6">
+        <div class="flex gap-2">
+          <button id="prevBtn" class="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:border-zinc-600 hover:text-white transition">← Prev</button>
+          <button id="nextBtn" class="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:border-zinc-600 hover:text-white transition">Next →</button>
+        </div>
+        <button id="requestBtn" class="rounded-full bg-amber-400 px-5 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-300 transition">Request similar edit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===========================================================
+       Your content is managed in admin.html (Admin Studio).
+       API_URL = your deployed Google Apps Script web app.
+       =========================================================== */
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwoJbBEv8HN8AFNuzimyLBCg9VG_jo3RMGU3hWNQPRyIyvOA1eHvKrl8EzX6QW_-2VR/exec';
+
+    const DEFAULT_SITE = {
+      brandFirst: 'Clay', brandSecond: 'Studio',
+      role: 'Cinematic Video Editor & Visual Storyteller',
+      showBadge: true, badge: 'Available for new projects',
+      ownerName: 'Clayton Collado Gaban',
+      heroIntro: 'I turn raw footage into sharp, emotional stories, from brand films and documentaries to scroll-stopping reels, with rhythm, color and sound that keep people watching.',
+      avatarUrl: 'clayton.jpg',
+      phone: '+63 921 768 3275', email: 'colladoclay@gmail.com',
+      aboutTitle: 'Stories are found in the edit.',
+      aboutP1: "I'm a professional video editor who believes the cut is where a film truly comes alive. I shape raw footage into tight, emotionally driven narratives, working closely with directors, brands and creators so the final piece feels intentional from the first frame to the last.",
+      aboutP2: "Whether it's a 16:9 brand film or a 9:16 reel built for the feed, I focus on pacing, clarity and a distinct visual voice that fits the platform and the audience.",
+      skills: [
+        { title: 'Pacing & Rhythm', desc: 'Cuts that breathe. Timing, transitions and beat-matching that hold attention without feeling rushed.' },
+        { title: 'Storytelling', desc: 'Structure, hooks and emotional arcs that turn scattered clips into a story people remember.' },
+        { title: 'Color & Look', desc: 'Cinematic grading and consistent visual styling tailored to the brand, mood and platform.' },
+        { title: 'Sound & Motion', desc: 'Clean audio mixing, sound design, titles and motion graphics that polish the final delivery.' }
+      ],
+      tools: ['Adobe Premiere Pro', 'After Effects', 'CapCut'],
+      portfolioKicker: 'Selected work', portfolioTitle: 'Portfolio',
+      portfolioSub: 'Switch between cinematic landscape films and vertical, mobile-first reels. Tap any project to play it.',
+      contactTitle: "Let's cut something great together.",
+      contactSub: "Tell me about your project, timeline and where it will be seen. I'll get back to you with next steps and a quote.",
+      socials: { instagram: '', facebook: '', youtube: '', tiktok: '', linkedin: '' }
+    };
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const HUES = [28, 38, 190, 200, 18, 265, 210, 45];
+
+    let SITE = structuredClone(DEFAULT_SITE);
+    let VIDEOS = [];
+
+    /* ---------- link helpers ---------- */
+    function parseLink(url) {
+      url = (url || '').trim();
+      if (!url) return { type: 'none' };
+      let m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/) || url.match(/drive\.google\.com\/open\?id=([\w-]+)/) || url.match(/drive\.google\.com\/uc\?[^#]*id=([\w-]+)/) || url.match(/docs\.google\.com\/[^/]+\/d\/([\w-]+)/);
+      if (m) return { type: 'drive', id: m[1] };
+      m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
+      if (m) return { type: 'youtube', id: m[1] };
+      m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+      if (m) return { type: 'vimeo', id: m[1] };
+      return { type: 'file', url };
+    }
+    function thumbFor(v) {
+      if (v.thumb) return v.thumb;
+      const p = parseLink(v.url);
+      if (p.type === 'drive') return 'https://drive.google.com/thumbnail?id=' + p.id + '&sz=w640';
+      if (p.type === 'youtube') return 'https://i.ytimg.com/vi/' + p.id + '/hqdefault.jpg';
+      return '';
+    }
+    function embedFor(url) {
+      const p = parseLink(url);
+      const f = 'class="absolute inset-0 h-full w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen frameborder="0"';
+      if (p.type === 'drive') return `<iframe ${f} title="Video player" src="https://drive.google.com/file/d/${p.id}/preview"></iframe>`;
+      if (p.type === 'youtube') return `<iframe ${f} title="Video player" src="https://www.youtube.com/embed/${p.id}?autoplay=1&rel=0"></iframe>`;
+      if (p.type === 'vimeo') return `<iframe ${f} title="Video player" src="https://player.vimeo.com/video/${p.id}?autoplay=1"></iframe>`;
+      if (p.type === 'file') return `<video class="absolute inset-0 h-full w-full bg-black object-contain" src="${esc(p.url)}" controls autoplay playsinline></video>`;
+      return `<div class="absolute inset-0 grid place-items-center px-6 text-center text-sm text-zinc-400">This video isn't available yet.</div>`;
+    }
+
+    /* ---------- apply site content ---------- */
+    const SOCIAL_ICONS = {
+      instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/>',
+      facebook: '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
+      youtube: '<rect x="2" y="5" width="20" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/>',
+      tiktok: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+      linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>'
+    };
+    const SKILL_ICONS = [
+      '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+      '<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/>',
+      '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18" opacity=".5"/><circle cx="12" cy="12" r="3"/>',
+      '<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
+    ];
+
+    function applySite(s) {
+      document.querySelectorAll('[data-t]').forEach(el => { el.textContent = s[el.dataset.t] ?? ''; });
+      document.querySelectorAll('[data-b1]').forEach(el => el.textContent = s.brandFirst);
+      document.querySelectorAll('[data-b2]').forEach(el => el.textContent = s.brandSecond);
+      const initial = (s.brandFirst || 'C').trim().charAt(0).toUpperCase();
+      $('navLogo').textContent = initial; $('footLogo').textContent = initial;
+      document.title = `${s.brandFirst} ${s.brandSecond} — ${s.role}`;
+      $('badgeWrap').style.display = s.showBadge === false ? 'none' : '';
+
+      const tel = String(s.phone || '').replace(/[^\d+]/g, '');
+      document.querySelectorAll('[data-phone-link]').forEach(a => a.href = 'tel:' + tel);
+      document.querySelectorAll('[data-mail-link]').forEach(a => a.href = 'mailto:' + s.email);
+
+      const img = $('avatarImg'), fb = $('avatarFallback');
+      $('initials').textContent = String(s.ownerName || 'CG').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      fb.style.display = 'none'; img.style.display = '';
+      img.onerror = () => { img.style.display = 'none'; fb.style.display = 'grid'; };
+      let av = s.avatarUrl || '';
+      const dm = parseLink(av);
+      if (dm.type === 'drive') av = 'https://drive.google.com/thumbnail?id=' + dm.id + '&sz=w800';
+      if (av) { if (img.getAttribute('src') !== av) img.src = av; } else { img.onerror(); }
+
+      $('skills').innerHTML = (s.skills || []).map((k, i) => {
+        const amber = i % 2 === 0;
+        return `<article class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 transition ${amber ? 'hover:border-amber-400/40' : 'hover:border-cyan-400/40'}">
+          <div class="mb-4 grid h-11 w-11 place-items-center rounded-xl ${amber ? 'bg-amber-400/10 text-amber-400' : 'bg-cyan-400/10 text-cyan-400'}">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SKILL_ICONS[i % 4]}</svg></div>
+          <h3 class="font-display text-lg font-semibold text-white">${esc(k.title)}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-zinc-400">${esc(k.desc)}</p></article>`;
+      }).join('');
+
+      $('tools').innerHTML = (s.tools || []).map(t => `<span class="rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-sm text-zinc-300">${esc(t)}</span>`).join('');
+
+      $('socials').innerHTML = Object.keys(SOCIAL_ICONS).filter(k => s.socials && s.socials[k]).map(k =>
+        `<a href="${esc(s.socials[k])}" target="_blank" rel="noopener" aria-label="${k}" class="grid h-10 w-10 place-items-center rounded-full border border-zinc-800 text-zinc-400 hover:border-amber-400 hover:text-amber-400 transition">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SOCIAL_ICONS[k]}</svg></a>`).join('');
+    }
+
+    /* ---------- portfolio ---------- */
+    const state = { fmt: 'h', cat: 'All', shown: 12, list: [], current: -1 };
+    const PAGE = 12;
+    const grid = $('grid'), chips = $('chips'), loadMore = $('loadMore'), shownInfo = $('shownInfo');
+    const GRID_CLASSES = { h: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3', v: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' };
+    const visibleVideos = fmt => VIDEOS.filter(v => v.format === fmt && v.visible !== false);
+
+    function paintTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const active = btn.dataset.format === state.fmt;
+        btn.setAttribute('aria-selected', active);
+        btn.className = 'tab-btn flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ' + (active ? 'bg-amber-400 text-zinc-950 glow-amber' : 'text-zinc-400 hover:text-white');
+      });
+      $('count-h').textContent = visibleVideos('h').length;
+      $('count-v').textContent = visibleVideos('v').length;
+    }
+    function paintChips() {
+      const tags = ['All', ...new Set(visibleVideos(state.fmt).map(v => v.category).filter(Boolean))];
+      chips.innerHTML = tags.length <= 2 ? '' : tags.map(t => {
+        const active = t === state.cat;
+        return `<button data-cat="${esc(t)}" class="rounded-full border px-4 py-1.5 text-sm transition ${active ? 'border-cyan-400 bg-cyan-400/10 text-cyan-300' : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'}">${esc(t)}</button>`;
+      }).join('');
+    }
+    function cardHTML(item, idx) {
+      const vertical = item.format === 'v';
+      const th = thumbFor(item);
+      const h1 = HUES[(idx + (vertical ? 3 : 0)) % HUES.length], h2 = HUES[(idx * 3 + 2) % HUES.length];
+      return `
+      <button type="button" data-idx="${idx}" aria-label="Play ${esc(item.title)}"
+        class="card fade-up group relative block w-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 text-left transition hover:border-amber-400/50 hover:-translate-y-1 hover:shadow-[0_20px_50px_-20px_rgba(251,191,36,.35)] ${vertical ? 'aspect-[9/16]' : 'aspect-video'}"
+        style="animation-delay:${Math.min((idx % PAGE) * 35, 400)}ms">
+        <div class="thumb-inner thumb absolute inset-0" style="--h1:${h1};--h2:${h2}">${th ? `<img src="${esc(th)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="absolute inset-0 z-[1] h-full w-full object-cover" onerror="this.remove()">` : ''}</div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent z-[2]"></div>
+        ${item.category ? `<span class="absolute left-3 top-3 z-[3] rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300 backdrop-blur">${esc(item.category)}</span>` : ''}
+        ${item.duration ? `<span class="absolute right-3 top-3 z-[3] rounded-md bg-black/55 px-2 py-0.5 text-[11px] text-zinc-200 backdrop-blur">${esc(item.duration)}</span>` : ''}
+        <span class="play-btn absolute left-1/2 top-1/2 z-[3] grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur-md transition-all duration-300 sm:h-14 sm:w-14">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </span>
+        <div class="absolute inset-x-0 bottom-0 z-[3] p-3 sm:p-4">
+          <h3 class="font-display text-sm font-semibold leading-tight text-white sm:text-base">${esc(item.title)}</h3>
+          <p class="mt-0.5 text-[11px] text-zinc-400">${vertical ? '9:16 · Reel' : '16:9 · Landscape'}</p>
+        </div>
+      </button>`;
+    }
+    function render(reset = true) {
+      if (reset) state.shown = PAGE;
+      const all = visibleVideos(state.fmt);
+      state.list = state.cat === 'All' ? all : all.filter(i => i.category === state.cat);
+      const slice = state.list.slice(0, state.shown);
+      grid.className = `mt-8 grid gap-4 sm:gap-5 ${GRID_CLASSES[state.fmt]}`;
+      if (!slice.length) {
+        grid.className = 'mt-8';
+        grid.innerHTML = `<div class="rounded-2xl border border-dashed border-zinc-800 p-12 text-center text-zinc-500">No ${state.fmt === 'h' ? 'horizontal' : 'vertical'} projects yet — check back soon.</div>`;
+      } else grid.innerHTML = slice.map((it, i) => cardHTML(it, i)).join('');
+      shownInfo.textContent = slice.length ? `Showing ${slice.length} of ${state.list.length} ${state.fmt === 'h' ? 'horizontal' : 'vertical'} projects` : '';
+      loadMore.classList.toggle('hidden', slice.length >= state.list.length);
+    }
+    function setFormat(fmt) { state.fmt = fmt; state.cat = 'All'; paintTabs(); paintChips(); render(true); }
+    function refreshPortfolio() {
+      // choose a tab that has content on first load
+      if (!visibleVideos(state.fmt).length && visibleVideos(state.fmt === 'h' ? 'v' : 'h').length) state.fmt = state.fmt === 'h' ? 'v' : 'h';
+      state.cat = 'All';
+      paintTabs(); paintChips(); render(true);
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => setFormat(b.dataset.format)));
+    chips.addEventListener('click', e => { const b = e.target.closest('button[data-cat]'); if (!b) return; state.cat = b.dataset.cat; paintChips(); render(true); });
+    loadMore.addEventListener('click', () => { state.shown += PAGE; render(false); });
+    grid.addEventListener('click', e => { const c = e.target.closest('.card'); if (!c) return; openModal(Number(c.dataset.idx)); });
+
+    /* ---------- modal player ---------- */
+    const modal = $('modal'), stage = $('stage');
+    let lastFocus = null;
+
+    function showItem(index) {
+      const item = state.list[index]; if (!item) return;
+      state.current = index;
+      const vertical = item.format === 'v';
+      $('modalTitle').textContent = item.title;
+      $('modalTag').textContent = `${item.category ? item.category + ' · ' : ''}${vertical ? '9:16 Vertical' : '16:9 Horizontal'}`;
+      stage.className = 'relative overflow-hidden rounded-xl ' + (vertical ? 'aspect-[9/16] mx-auto' : 'aspect-video w-full');
+      stage.style.width = vertical ? 'min(100%, calc((100vh - 17rem) * 9 / 16))' : '';
+      stage.innerHTML = embedFor(item.url);
+      const d = $('modalDesc'); d.textContent = item.desc || ''; d.classList.toggle('hidden', !item.desc);
+      $('prevBtn').disabled = index === 0;
+      $('nextBtn').disabled = index === state.list.length - 1;
+      [$('prevBtn'), $('nextBtn')].forEach(b => b.classList.toggle('opacity-40', b.disabled));
+    }
+    function openModal(index) {
+      lastFocus = document.activeElement;
+      modal.classList.add('open'); modal.classList.remove('hidden');
+      document.body.classList.add('no-scroll');
+      showItem(index); $('modalClose').focus();
+    }
+    function closeModal() {
+      stage.innerHTML = '';
+      modal.classList.remove('open'); modal.classList.add('hidden');
+      document.body.classList.remove('no-scroll');
+      if (lastFocus) lastFocus.focus();
+    }
+    $('modalClose').addEventListener('click', closeModal);
+    $('modalBackdrop').addEventListener('click', closeModal);
+    $('prevBtn').addEventListener('click', () => showItem(state.current - 1));
+    $('nextBtn').addEventListener('click', () => showItem(state.current + 1));
+    $('requestBtn').addEventListener('click', () => {
+      const item = state.list[state.current]; if (!item) return;
+      closeModal();
+      $('type').value = item.format === 'v' ? 'Vertical / Reels & Shorts' : 'Horizontal / Landscape video';
+      $('message').value = `Hi ${String(SITE.ownerName || '').split(' ')[0] || 'there'}, I'd like something similar to "${item.title}". `;
+      $('contact').scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => $('message').focus(), 700);
+    });
+    document.addEventListener('keydown', e => {
+      if (!modal.classList.contains('open')) return;
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowLeft' && state.current > 0) showItem(state.current - 1);
+      if (e.key === 'ArrowRight' && state.current < state.list.length - 1) showItem(state.current + 1);
+    });
+
+    /* ---------- contact form → mailto ---------- */
+    $('contactForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = $('name').value.trim(), email = $('email').value.trim(), msg = $('message').value.trim();
+      const out = $('formMsg'); out.classList.remove('hidden');
+      if (!name || !/^\S+@\S+\.\S+$/.test(email) || !msg) {
+        out.className = 'mt-4 text-sm text-rose-400';
+        out.textContent = 'Please fill in your name, a valid email and your project details.';
+        return;
+      }
+      const deadline = $('deadline').value;
+      const body = `Name: ${name}\nEmail: ${email}\nProject type: ${$('type').value}\n` + (deadline ? `Deadline: ${deadline}\n` : '') + `\n${msg}`;
+      window.location.href = `mailto:${SITE.email}?subject=${encodeURIComponent('Project inquiry from ' + name)}&body=${encodeURIComponent(body)}`;
+      out.className = 'mt-4 text-sm text-emerald-400';
+      out.textContent = `Opening your email app… if nothing happens, write to ${SITE.email} directly.`;
+    });
+
+    /* ---------- nav + reveal ---------- */
+    const nav = $('nav');
+    function navScroll() {
+      const on = window.scrollY > 20;
+      nav.classList.toggle('bg-zinc-950/80', on); nav.classList.toggle('backdrop-blur-xl', on);
+      nav.classList.toggle('border-b', on); nav.classList.toggle('border-zinc-800/70', on);
+    }
+    window.addEventListener('scroll', navScroll, { passive: true }); navScroll();
+    const menuBtn = $('menuBtn'), mobileMenu = $('mobileMenu');
+    menuBtn.addEventListener('click', () => { const open = mobileMenu.classList.toggle('hidden') === false; menuBtn.setAttribute('aria-expanded', open); });
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { mobileMenu.classList.add('hidden'); menuBtn.setAttribute('aria-expanded', false); }));
+    const io = new IntersectionObserver(entries => { entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }); }, { threshold: 0.12 });
+    function observeReveals() { document.querySelectorAll('.reveal:not(.in)').forEach(el => io.observe(el)); }
+
+    /* ---------- data loading (cached first, then fresh) ---------- */
+    function mergeSite(s) {
+      const m = Object.assign(structuredClone(DEFAULT_SITE), s || {});
+      m.socials = Object.assign({}, DEFAULT_SITE.socials, (s && s.socials) || {});
+      m.skills = DEFAULT_SITE.skills.map((x, i) => Object.assign({}, x, (s && s.skills && s.skills[i]) || {}));
+      if (!Array.isArray(m.tools)) m.tools = DEFAULT_SITE.tools;
+      return m;
+    }
+    function useData(d) {
+      SITE = mergeSite(d && d.site);
+      VIDEOS = (d && Array.isArray(d.videos)) ? d.videos : [];
+      applySite(SITE); refreshPortfolio();
+    }
+
+    $('year').textContent = new Date().getFullYear();
+    try { const c = localStorage.getItem('cs_cache'); if (c) useData(JSON.parse(c)); else useData(null); } catch (e) { useData(null); }
+    observeReveals();
+
+    fetch(API_URL + '?action=get&t=' + Date.now())
+      .then(r => r.json())
+      .then(res => {
+        if (!res || !res.ok) return;
+        try { localStorage.setItem('cs_cache', JSON.stringify(res.data)); } catch (e) {}
+        useData(res.data); observeReveals();
+      })
+      .catch(() => { /* offline or backend not deployed: keep cached/default content */ });
+  </script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Clay Studio Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','system-ui','sans-serif'], display: ['"Space Grotesk"','Inter','sans-serif'] } } } };
+</script>
+<style>
+  body { background:#09090b; color:#e4e4e7; }
+  .inp { width:100%; border-radius:.75rem; border:1px solid #27272a; background:#09090b; padding:.65rem .9rem; color:#fff; font-size:.9rem; }
+  .inp:focus { outline:none; border-color:#fbbf24; }
+  .lbl { display:block; font-size:.78rem; color:#a1a1aa; margin-bottom:.35rem; }
+  .btn { border-radius:9999px; padding:.55rem 1.1rem; font-size:.85rem; font-weight:600; transition:.15s; }
+  .btn-pri { background:#fbbf24; color:#09090b; } .btn-pri:hover { background:#fcd34d; }
+  .btn-ghost { border:1px solid #3f3f46; color:#e4e4e7; } .btn-ghost:hover { border-color:#fbbf24; color:#fbbf24; }
+  .btn-danger { border:1px solid #7f1d1d; color:#fca5a5; } .btn-danger:hover { background:#7f1d1d33; }
+  .nav-btn { display:flex; align-items:center; gap:.6rem; width:100%; text-align:left; padding:.65rem .9rem; border-radius:.75rem; font-size:.9rem; color:#a1a1aa; }
+  .nav-btn:hover { background:#18181b; color:#fff; }
+  .nav-btn.on { background:#fbbf2418; color:#fbbf24; }
+  .card { border:1px solid #27272a; background:#111113; border-radius:1rem; padding:1.25rem; }
+  ::-webkit-scrollbar { width:10px; } ::-webkit-scrollbar-thumb { background:#27272a; border-radius:8px; }
+</style>
+</head>
+<body class="font-sans antialiased">
+
+<!-- LOGIN -->
+<div id="login" class="min-h-screen grid place-items-center p-5">
+  <form id="loginForm" class="w-full max-w-sm card space-y-4">
+    <div class="flex items-center gap-2.5">
+      <span class="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-zinc-950 font-display font-bold">C</span>
+      <div><p class="font-display font-semibold text-white leading-tight">Clay Studio Admin</p><p class="text-xs text-zinc-500">Edit your portfolio site</p></div>
+    </div>
+    <div><label class="lbl" for="pw">Admin password</label><input id="pw" type="password" class="inp" autocomplete="current-password" autofocus /></div>
+    <details class="text-xs text-zinc-500"><summary class="cursor-pointer hover:text-zinc-300">Connection settings</summary>
+      <label class="lbl mt-2" for="apiLogin">Apps Script web app URL (ends in /exec)</label><input id="apiLogin" class="inp" />
+    </details>
+    <p id="loginErr" class="hidden text-sm text-rose-400"></p>
+    <button class="btn btn-pri w-full" id="loginBtn">Sign in</button>
+    <p class="text-xs text-zinc-600">First time? Default password is set in Code.gs (DEFAULT_PASSWORD).</p>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden min-h-screen">
+  <header class="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+      <div class="flex items-center gap-2.5">
+        <span class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-zinc-950 font-display font-bold">C</span>
+        <span class="font-display font-semibold text-white hidden sm:inline">Clay Studio · Admin</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="dirtyTag" class="hidden rounded-full bg-amber-400/15 px-3 py-1 text-xs text-amber-300">Unpublished changes</span>
+        <a href="index.html" target="_blank" class="btn btn-ghost hidden sm:inline-block">View site ↗</a>
+        <button id="saveBtn" class="btn btn-pri">Publish changes</button>
+        <button id="logoutBtn" class="btn btn-ghost">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[220px_1fr]">
+    <nav id="sideNav" class="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
+      <button class="nav-btn" data-view="hero">🏠 Hero &amp; Brand</button>
+      <button class="nav-btn" data-view="about">👤 About</button>
+      <button class="nav-btn" data-view="videos">🎬 Videos</button>
+      <button class="nav-btn" data-view="portfolio">🧩 Portfolio text</button>
+      <button class="nav-btn" data-view="contact">✉️ Contact &amp; Social</button>
+      <button class="nav-btn" data-view="settings">⚙️ Settings</button>
+    </nav>
+    <main id="view" class="min-w-0"></main>
+  </div>
+</div>
+
+<!-- VIDEO EDIT MODAL -->
+<div id="vModal" class="fixed inset-0 z-50 hidden items-start justify-center overflow-y-auto bg-black/80 p-4">
+  <div class="my-6 w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-950">
+    <div class="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
+      <h3 id="vmTitle" class="font-display text-lg font-semibold text-white">Edit video</h3>
+      <button id="vmClose" class="btn btn-ghost">✕</button>
+    </div>
+    <div class="grid gap-6 p-5 md:grid-cols-2">
+      <div class="space-y-4">
+        <div><label class="lbl">Video link (Google Drive, YouTube, Vimeo or .mp4)</label><input id="vmUrl" class="inp" placeholder="https://drive.google.com/file/d/…/view" /><p id="vmUrlHint" class="mt-1 text-xs text-zinc-500"></p></div>
+        <div><label class="lbl">Title</label><input id="vmName" class="inp" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl">Format</label><select id="vmFmt" class="inp"><option value="h">Horizontal 16:9</option><option value="v">Vertical 9:16</option></select></div>
+          <div><label class="lbl">Category</label><input id="vmCat" class="inp" list="catList" placeholder="Commercial" /><datalist id="catList"></datalist></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl">Duration (optional, e.g. 1:24)</label><input id="vmDur" class="inp" /></div>
+          <div><label class="lbl">Custom thumbnail URL (optional)</label><input id="vmThumb" class="inp" placeholder="auto from Drive" /></div>
+        </div>
+        <div><label class="lbl">Short description (optional)</label><textarea id="vmDesc" rows="2" class="inp"></textarea></div>
+        <label class="flex items-center gap-2 text-sm text-zinc-300"><input id="vmVis" type="checkbox" class="h-4 w-4 accent-amber-400" /> Visible on website</label>
+      </div>
+      <div>
+        <p class="lbl">Live player preview</p>
+        <div id="vmStageWrap" class="grid place-items-center rounded-xl bg-black p-3"><div id="vmStage" class="relative w-full overflow-hidden rounded-lg bg-zinc-900"></div></div>
+        <p class="mt-2 text-xs text-zinc-500">For Google Drive: set the file's sharing to <b class="text-zinc-300">“Anyone with the link – Viewer”</b> or it won't play for your clients.</p>
+      </div>
+    </div>
+    <div class="flex justify-between gap-2 border-t border-zinc-800 px-5 py-4">
+      <button id="vmDelete" class="btn btn-danger">Delete</button>
+      <div class="flex gap-2"><button id="vmCancel" class="btn btn-ghost">Cancel</button><button id="vmSave" class="btn btn-pri">Save video</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- BULK MODAL -->
+<div id="bModal" class="fixed inset-0 z-50 hidden items-start justify-center overflow-y-auto bg-black/80 p-4">
+  <div class="my-10 w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-950">
+    <div class="flex items-center justify-between border-b border-zinc-800 px-5 py-4"><h3 class="font-display text-lg font-semibold text-white">Bulk add videos</h3><button id="bClose" class="btn btn-ghost">✕</button></div>
+    <div class="space-y-4 p-5">
+      <div><label class="lbl">One per line. Either just the link, or <code>Title | link</code></label><textarea id="bText" rows="8" class="inp" placeholder="Brand Film | https://drive.google.com/file/d/…/view&#10;https://drive.google.com/file/d/…/view"></textarea></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="lbl">Format for all</label><select id="bFmt" class="inp"><option value="h">Horizontal 16:9</option><option value="v">Vertical 9:16</option></select></div>
+        <div><label class="lbl">Category for all</label><input id="bCat" class="inp" list="catList" placeholder="Commercial" /></div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-zinc-800 px-5 py-4"><button id="bCancel" class="btn btn-ghost">Cancel</button><button id="bGo" class="btn btn-pri">Add videos</button></div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-5 left-1/2 z-[60] hidden -translate-x-1/2 rounded-full border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-sm text-white shadow-xl"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwoJbBEv8HN8AFNuzimyLBCg9VG_jo3RMGU3hWNQPRyIyvOA1eHvKrl8EzX6QW_-2VR/exec';
+const DEFAULT_SITE = {
+  brandFirst: 'Clay', brandSecond: 'Studio',
+  role: 'Cinematic Video Editor & Visual Storyteller',
+  showBadge: true, badge: 'Available for new projects',
+  ownerName: 'Clayton Collado Gaban',
+  heroIntro: 'I turn raw footage into sharp, emotional stories, from brand films and documentaries to scroll-stopping reels, with rhythm, color and sound that keep people watching.',
+  avatarUrl: 'clayton.jpg',
+  phone: '+63 921 768 3275', email: 'colladoclay@gmail.com',
+  aboutTitle: 'Stories are found in the edit.',
+  aboutP1: "I'm a professional video editor who believes the cut is where a film truly comes alive. I shape raw footage into tight, emotionally driven narratives, working closely with directors, brands and creators so the final piece feels intentional from the first frame to the last.",
+  aboutP2: "Whether it's a 16:9 brand film or a 9:16 reel built for the feed, I focus on pacing, clarity and a distinct visual voice that fits the platform and the audience.",
+  skills: [
+    { title: 'Pacing & Rhythm', desc: 'Cuts that breathe. Timing, transitions and beat-matching that hold attention without feeling rushed.' },
+    { title: 'Storytelling', desc: 'Structure, hooks and emotional arcs that turn scattered clips into a story people remember.' },
+    { title: 'Color & Look', desc: 'Cinematic grading and consistent visual styling tailored to the brand, mood and platform.' },
+    { title: 'Sound & Motion', desc: 'Clean audio mixing, sound design, titles and motion graphics that polish the final delivery.' }
+  ],
+  tools: ['Adobe Premiere Pro', 'After Effects', 'CapCut'],
+  portfolioKicker: 'Selected work', portfolioTitle: 'Portfolio',
+  portfolioSub: 'Switch between cinematic landscape films and vertical, mobile-first reels. Tap any project to play it.',
+  contactTitle: "Let's cut something great together.",
+  contactSub: "Tell me about your project, timeline and where it will be seen. I'll get back to you with next steps and a quote.",
+  socials: { instagram: '', facebook: '', youtube: '', tiktok: '', linkedin: '' }
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let API = localStorage.getItem('cs_api') || DEFAULT_API;
+let password = sessionStorage.getItem('cs_pw') || '';
+let state = { site: structuredClone(DEFAULT_SITE), videos: [] };
+let dirty = false, view = 'hero', vFilter = 'all', vSearch = '', editing = null, editingIsNew = false;
+
+/* ============ API ============ */
+async function apiGet() {
+  const r = await fetch(API + (API.includes('?') ? '&' : '?') + 'action=get&t=' + Date.now());
+  const txt = await r.text();
+  try { return JSON.parse(txt); } catch (e) { throw new Error('Backend did not return JSON. Paste Code.gs into your Apps Script and deploy a NEW VERSION (Execute as: Me, Access: Anyone).'); }
+}
+async function apiPost(body) {
+  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+  const txt = await r.text();
+  try { return JSON.parse(txt); } catch (e) { throw new Error('Backend did not return JSON. Re-deploy the script as a new version.'); }
+}
+
+/* ============ helpers ============ */
+function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), ms); }
+function markDirty(v = true) { dirty = v; $('dirtyTag').classList.toggle('hidden', !v); }
+function getPath(p) { return p.split('.').reduce((o, k) => (o == null ? o : o[k]), state); }
+function setPath(p, val) { const ks = p.split('.'); const last = ks.pop(); const o = ks.reduce((a, k) => a[k], state); o[last] = val; }
+function uid() { return 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function mergeSite(s) {
+  const d = structuredClone(DEFAULT_SITE);
+  const m = Object.assign(d, s || {});
+  m.socials = Object.assign({}, DEFAULT_SITE.socials, (s && s.socials) || {});
+  m.skills = DEFAULT_SITE.skills.map((x, i) => Object.assign({}, x, (s && s.skills && s.skills[i]) || {}));
+  if (!Array.isArray(m.tools)) m.tools = DEFAULT_SITE.tools;
+  return m;
+}
+
+/* Link parsing */
+function parseLink(url) {
+  url = (url || '').trim();
+  if (!url) return { type: 'none' };
+  let m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/) || url.match(/drive\.google\.com\/open\?id=([\w-]+)/) || url.match(/drive\.google\.com\/uc\?[^#]*id=([\w-]+)/) || url.match(/docs\.google\.com\/[^/]+\/d\/([\w-]+)/);
+  if (m) return { type: 'drive', id: m[1] };
+  if (/drive\.google\.com\/drive\/(u\/\d+\/)?folders/.test(url)) return { type: 'folder' };
+  m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
+  if (m) return { type: 'youtube', id: m[1] };
+  m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (m) return { type: 'vimeo', id: m[1] };
+  return { type: 'file', url };
+}
+function thumbFor(v) {
+  if (v.thumb) return v.thumb;
+  const p = parseLink(v.url);
+  if (p.type === 'drive') return 'https://drive.google.com/thumbnail?id=' + p.id + '&sz=w640';
+  if (p.type === 'youtube') return 'https://i.ytimg.com/vi/' + p.id + '/hqdefault.jpg';
+  return '';
+}
+function playerHTML(url, autoplay) {
+  const p = parseLink(url);
+  const f = 'class="absolute inset-0 h-full w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen frameborder="0"';
+  if (p.type === 'drive') return `<iframe ${f} src="https://drive.google.com/file/d/${p.id}/preview"></iframe>`;
+  if (p.type === 'youtube') return `<iframe ${f} src="https://www.youtube.com/embed/${p.id}?rel=0${autoplay ? '&autoplay=1' : ''}"></iframe>`;
+  if (p.type === 'vimeo') return `<iframe ${f} src="https://player.vimeo.com/video/${p.id}${autoplay ? '?autoplay=1' : ''}"></iframe>`;
+  if (p.type === 'file') return `<video class="absolute inset-0 h-full w-full bg-black object-contain" src="${esc(p.url)}" controls playsinline></video>`;
+  return '<div class="absolute inset-0 grid place-items-center text-sm text-zinc-500">Paste a link to preview</div>';
+}
+
+/* ============ field builders ============ */
+function field(path, label, type = 'text', hint = '') {
+  const v = getPath(path);
+  let el;
+  if (type === 'textarea') el = `<textarea class="inp" rows="3" data-path="${path}">${esc(v)}</textarea>`;
+  else if (type === 'list') el = `<textarea class="inp" rows="4" data-path="${path}" data-list="1">${esc((v || []).join('\n'))}</textarea>`;
+  else if (type === 'bool') return `<label class="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" class="h-4 w-4 accent-amber-400" data-path="${path}" data-type="bool" ${v ? 'checked' : ''}/> ${esc(label)}</label>`;
+  else el = `<input class="inp" type="${type}" data-path="${path}" value="${esc(v)}" />`;
+  return `<div><label class="lbl">${esc(label)}</label>${el}${hint ? `<p class="mt-1 text-xs text-zinc-500">${hint}</p>` : ''}</div>`;
+}
+const section = (title, body, sub = '') => `<section class="card space-y-4"><div><h2 class="font-display text-lg font-semibold text-white">${title}</h2>${sub ? `<p class="text-sm text-zinc-500">${sub}</p>` : ''}</div>${body}</section>`;
+
+/* ============ views ============ */
+const VIEWS = {
+  hero() {
+    return `<div class="space-y-5">
+      ${section('Brand & headline', `<div class="grid gap-4 sm:grid-cols-2">${field('site.brandFirst', 'Brand – first word')}${field('site.brandSecond', 'Brand – second word (gradient)')}</div>${field('site.role', 'Tagline / role')}`)}
+      ${section('Intro', `${field('site.ownerName', 'Your full name')}${field('site.heroIntro', 'Intro paragraph (shown after “Hi, I\'m …”)', 'textarea')}${field('site.avatarUrl', 'Profile photo URL', 'text', 'Use a file name next to index.html (e.g. clayton.jpg) or a full image link. Google Drive photo links work if shared publicly.')}`)}
+      ${section('Availability badge', `${field('site.showBadge', 'Show badge', 'bool')}${field('site.badge', 'Badge text')}`)}
+    </div>`;
+  },
+  about() {
+    const skills = state.site.skills.map((s, i) => `<div class="rounded-xl border border-zinc-800 p-4 space-y-3"><p class="text-xs uppercase tracking-widest text-zinc-500">Skill card ${i + 1}</p>${field(`site.skills.${i}.title`, 'Title')}${field(`site.skills.${i}.desc`, 'Description', 'textarea')}</div>`).join('');
+    return `<div class="space-y-5">
+      ${section('About text', `${field('site.aboutTitle', 'Headline')}${field('site.aboutP1', 'Paragraph 1', 'textarea')}${field('site.aboutP2', 'Paragraph 2', 'textarea')}`)}
+      ${section('Skill cards', `<div class="grid gap-4 sm:grid-cols-2">${skills}</div>`)}
+      ${section('Industry tools', field('site.tools', 'One tool per line', 'list'))}
+    </div>`;
+  },
+  portfolio() {
+    return section('Portfolio section text', `${field('site.portfolioKicker', 'Small label')}${field('site.portfolioTitle', 'Heading')}${field('site.portfolioSub', 'Description', 'textarea')}`, 'The videos themselves are managed in the Videos tab.');
+  },
+  contact() {
+    const soc = ['instagram', 'facebook', 'youtube', 'tiktok', 'linkedin'].map(k => field('site.socials.' + k, k[0].toUpperCase() + k.slice(1) + ' URL', 'url')).join('');
+    return `<div class="space-y-5">
+      ${section('Contact details', `<div class="grid gap-4 sm:grid-cols-2">${field('site.phone', 'Phone')}${field('site.email', 'Email', 'email', 'Inquiries from the website open in this mailbox.')}</div>`)}
+      ${section('Contact section text', `${field('site.contactTitle', 'Heading')}${field('site.contactSub', 'Description', 'textarea')}`)}
+      ${section('Social links', `<div class="grid gap-4 sm:grid-cols-2">${soc}</div>`, 'Leave empty to hide an icon.')}
+    </div>`;
+  },
+  settings() {
+    return `<div class="space-y-5">
+      ${section('Backend URL', `<div><label class="lbl">Apps Script web app URL</label><input id="apiInp" class="inp" value="${esc(API)}" /></div><button id="apiSave" class="btn btn-ghost">Save URL</button>`, 'Stored in this browser only. Your public site has its own copy in index.html (API_URL).')}
+      ${section('Change admin password', `<div class="grid gap-4 sm:grid-cols-2"><div><label class="lbl">New password (min 6)</label><input id="npw" type="password" class="inp" autocomplete="new-password" /></div></div><button id="npwBtn" class="btn btn-ghost">Update password</button>`)}
+      ${section('Backup', `<div class="flex flex-wrap gap-2"><button id="exportBtn" class="btn btn-ghost">Download backup (.json)</button><label class="btn btn-ghost cursor-pointer">Import backup<input id="importFile" type="file" accept=".json" class="hidden" /></label></div>`)}
+    </div>`;
+  },
+  videos() {
+    const all = state.videos;
+    const list = all.filter(v => (vFilter === 'all' || v.format === vFilter) && (!vSearch || (v.title + ' ' + v.category).toLowerCase().includes(vSearch.toLowerCase())));
+    const nH = all.filter(v => v.format === 'h').length, nV = all.filter(v => v.format === 'v').length;
+    const tab = (k, t) => `<button data-vf="${k}" class="btn ${vFilter === k ? 'btn-pri' : 'btn-ghost'}">${t}</button>`;
+    const rows = list.map(v => {
+      const th = thumbFor(v);
+      return `<div class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-2.5 ${v.visible === false ? 'opacity-50' : ''}" data-id="${v.id}">
+        <div class="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-900">${th ? `<img src="${esc(th)}" referrerpolicy="no-referrer" loading="lazy" class="h-full w-full object-cover" onerror="this.remove()">` : ''}<span class="absolute inset-0 grid place-items-center text-zinc-600">▶</span></div>
+        <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-white">${esc(v.title || 'Untitled')}</p>
+          <p class="truncate text-xs text-zinc-500"><span class="${v.format === 'v' ? 'text-cyan-400' : 'text-amber-400'}">${v.format === 'v' ? '9:16' : '16:9'}</span> · ${esc(v.category || 'No category')}${parseLink(v.url).type === 'none' ? ' · <span class="text-rose-400">no link</span>' : ''}</p></div>
+        <div class="flex shrink-0 items-center gap-1">
+          <button data-act="up" class="btn btn-ghost !px-2.5" title="Move up">↑</button>
+          <button data-act="down" class="btn btn-ghost !px-2.5" title="Move down">↓</button>
+          <button data-act="vis" class="btn btn-ghost !px-2.5" title="Show / hide">${v.visible === false ? '🚫' : '👁'}</button>
+          <button data-act="edit" class="btn btn-ghost">Edit</button>
+        </div></div>`;
+    }).join('');
+    return `<div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap gap-2">${tab('all', `All (${all.length})`)}${tab('h', `Horizontal (${nH})`)}${tab('v', `Vertical (${nV})`)}</div>
+        <div class="flex gap-2"><button id="bulkBtn" class="btn btn-ghost">Bulk add</button><button id="addBtn" class="btn btn-pri">+ Add video</button></div>
+      </div>
+      <input id="vSearch" class="inp" placeholder="Search title or category…" value="${esc(vSearch)}" />
+      <div class="space-y-2">${rows || '<div class="card text-center text-sm text-zinc-500">No videos yet. Click “Add video” and paste a Google Drive link.</div>'}</div>
+    </div>`;
+  }
+};
+
+function renderView() {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+  $('view').innerHTML = VIEWS[view]();
+}
+
+/* ============ video modal ============ */
+function categories() { return [...new Set(state.videos.map(v => v.category).filter(Boolean))]; }
+function openVideo(v, isNew) {
+  editing = structuredClone(v); editingIsNew = isNew;
+  $('vmTitle').textContent = isNew ? 'Add video' : 'Edit video';
+  $('vmUrl').value = editing.url || ''; $('vmName').value = editing.title || ''; $('vmFmt').value = editing.format || 'h';
+  $('vmCat').value = editing.category || ''; $('vmDur').value = editing.duration || ''; $('vmThumb').value = editing.thumb || '';
+  $('vmDesc').value = editing.desc || ''; $('vmVis').checked = editing.visible !== false;
+  $('vmDelete').classList.toggle('hidden', isNew);
+  $('catList').innerHTML = categories().map(c => `<option value="${esc(c)}">`).join('');
+  refreshPreview();
+  $('vModal').classList.remove('hidden'); $('vModal').classList.add('flex');
+}
+function refreshPreview() {
+  const url = $('vmUrl').value, fmt = $('vmFmt').value, p = parseLink(url);
+  const st = $('vmStage');
+  st.className = 'relative overflow-hidden rounded-lg bg-zinc-900 ' + (fmt === 'v' ? 'mx-auto aspect-[9/16]' : 'w-full aspect-video');
+  st.style.width = fmt === 'v' ? 'min(100%, 240px)' : '';
+  st.innerHTML = playerHTML(url, false);
+  const hints = { none: '', drive: '✓ Google Drive file detected. Make sure sharing is “Anyone with the link”.', youtube: '✓ YouTube video detected.', vimeo: '✓ Vimeo video detected.', file: '✓ Direct video file link.', folder: '⚠ That is a folder link. Open the video file itself and copy its share link.' };
+  const h = $('vmUrlHint'); h.textContent = hints[p.type] || ''; h.className = 'mt-1 text-xs ' + (p.type === 'folder' ? 'text-rose-400' : 'text-emerald-400');
+}
+function hideVideo() { $('vmStage').innerHTML = ''; $('vModal').classList.add('hidden'); $('vModal').classList.remove('flex'); editing = null; }
+function saveVideo() {
+  const url = $('vmUrl').value.trim();
+  if (parseLink(url).type === 'folder') { toast('Use a file link, not a folder link'); return; }
+  const v = Object.assign(editing, {
+    url, title: $('vmName').value.trim() || 'Untitled', format: $('vmFmt').value, category: $('vmCat').value.trim(),
+    duration: $('vmDur').value.trim(), thumb: $('vmThumb').value.trim(), desc: $('vmDesc').value.trim(), visible: $('vmVis').checked
+  });
+  if (editingIsNew) state.videos.unshift(v);
+  else { const i = state.videos.findIndex(x => x.id === v.id); if (i > -1) state.videos[i] = v; }
+  markDirty(); hideVideo(); renderView(); toast('Video saved — remember to Publish');
+}
+function moveVideo(id, dir) {
+  const v = state.videos.find(x => x.id === id); if (!v) return;
+  const same = state.videos.filter(x => x.format === v.format);
+  const i = same.findIndex(x => x.id === id), j = i + dir;
+  if (j < 0 || j >= same.length) return;
+  const a = state.videos.indexOf(same[i]), b = state.videos.indexOf(same[j]);
+  [state.videos[a], state.videos[b]] = [state.videos[b], state.videos[a]];
+  markDirty(); renderView();
+}
+
+/* ============ events ============ */
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset && el.dataset.path) {
+    const val = el.dataset.type === 'bool' ? el.checked : el.dataset.list ? el.value.split('\n').map(s => s.trim()).filter(Boolean) : el.value;
+    setPath(el.dataset.path, val); markDirty();
+  }
+  if (el.id === 'vSearch') { vSearch = el.value; const pos = el.selectionStart; renderView(); const s = $('vSearch'); s.focus(); s.setSelectionRange(pos, pos); }
+  if (el.id === 'vmUrl' || el.id === 'vmFmt') refreshPreview();
+});
+document.addEventListener('click', async e => {
+  const t = e.target.closest('button, label'); if (!t) return;
+  if (t.dataset.view) { view = t.dataset.view; renderView(); return; }
+  if (t.dataset.vf) { vFilter = t.dataset.vf; renderView(); return; }
+  const row = t.closest('[data-id]');
+  if (row && t.dataset.act) {
+    const id = row.dataset.id, v = state.videos.find(x => x.id === id);
+    if (t.dataset.act === 'edit') openVideo(v, false);
+    if (t.dataset.act === 'up') moveVideo(id, -1);
+    if (t.dataset.act === 'down') moveVideo(id, 1);
+    if (t.dataset.act === 'vis') { v.visible = v.visible === false; markDirty(); renderView(); }
+    return;
+  }
+  switch (t.id) {
+    case 'addBtn': openVideo({ id: uid(), title: '', format: vFilter === 'v' ? 'v' : 'h', category: '', url: '', visible: true }, true); break;
+    case 'bulkBtn': $('bModal').classList.remove('hidden'); $('bModal').classList.add('flex'); break;
+    case 'vmClose': case 'vmCancel': hideVideo(); break;
+    case 'vmSave': saveVideo(); break;
+    case 'vmDelete': if (confirm('Delete this video?')) { state.videos = state.videos.filter(x => x.id !== editing.id); markDirty(); hideVideo(); renderView(); } break;
+    case 'bClose': case 'bCancel': $('bModal').classList.add('hidden'); $('bModal').classList.remove('flex'); break;
+    case 'bGo': bulkAdd(); break;
+    case 'apiSave': { const u = $('apiInp').value.trim(); if (u) { API = u; localStorage.setItem('cs_api', u); toast('Backend URL saved'); } break; }
+    case 'npwBtn': {
+      const np = $('npw').value;
+      if (np.length < 6) { toast('Password must be at least 6 characters'); break; }
+      try { const r = await apiPost({ action: 'changePassword', password, newPassword: np }); if (r.ok) { password = np; sessionStorage.setItem('cs_pw', np); $('npw').value = ''; toast('Password updated'); } else toast(r.error || 'Failed'); } catch (err) { toast(err.message, 5000); }
+      break;
+    }
+    case 'exportBtn': {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+      a.download = 'clay-studio-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); break;
+    }
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'importFile' && e.target.files[0]) {
+    const rd = new FileReader();
+    rd.onload = () => { try { const d = JSON.parse(rd.result); state = { site: mergeSite(d.site), videos: Array.isArray(d.videos) ? d.videos : [] }; markDirty(); renderView(); toast('Backup loaded — Publish to apply'); } catch (err) { toast('Invalid backup file'); } };
+    rd.readAsText(e.target.files[0]);
+  }
+});
+$('vModal').addEventListener('mousedown', e => { if (e.target === $('vModal')) hideVideo(); });
+
+function bulkAdd() {
+  const lines = $('bText').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!lines.length) { toast('Paste at least one link'); return; }
+  const fmt = $('bFmt').value, cat = $('bCat').value.trim();
+  const base = state.videos.filter(v => v.format === fmt).length;
+  const add = lines.map((ln, i) => {
+    let title = '', url = ln;
+    if (ln.includes('|')) { const k = ln.indexOf('|'); title = ln.slice(0, k).trim(); url = ln.slice(k + 1).trim(); }
+    return { id: uid() + i, title: title || `${cat || (fmt === 'v' ? 'Reel' : 'Project')} #${String(base + i + 1).padStart(2, '0')}`, format: fmt, category: cat, url, visible: true };
+  });
+  state.videos.push(...add); markDirty(); $('bText').value = '';
+  $('bModal').classList.add('hidden'); $('bModal').classList.remove('flex'); renderView(); toast(add.length + ' videos added');
+}
+
+/* ============ auth + save ============ */
+async function enter() {
+  const res = await apiGet();
+  if (!res.ok) throw new Error(res.error || 'Could not load data');
+  state = { site: mergeSite(res.data.site), videos: (res.data.videos || []) };
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  markDirty(false); renderView();
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('loginErr'), btn = $('loginBtn'); err.classList.add('hidden'); btn.textContent = 'Checking…'; btn.disabled = true;
+  try {
+    const u = $('apiLogin').value.trim();
+    if (u && u !== API) { API = u; localStorage.setItem('cs_api', u); }
+    const pw = $('pw').value;
+    const r = await apiPost({ action: 'login', password: pw });
+    if (!r.ok) throw new Error(r.error || 'Login failed');
+    password = pw; sessionStorage.setItem('cs_pw', pw);
+    await enter();
+  } catch (ex) {
+    err.textContent = /failed to fetch|networkerror|load failed/i.test(ex.message)
+      ? "Can't reach the backend. The Apps Script deployment is probably still running old code or isn't set to \"Anyone\". Open the URL below with ?action=get at the end: it must show {\"ok\":true…}. Then paste the correct URL in Connection settings."
+      : ex.message;
+    err.classList.remove('hidden');
+  }
+  btn.textContent = 'Sign in'; btn.disabled = false;
+});
+$('saveBtn').addEventListener('click', async () => {
+  const b = $('saveBtn'); b.textContent = 'Publishing…'; b.disabled = true;
+  try {
+    const r = await apiPost({ action: 'save', password, data: { site: state.site, videos: state.videos } });
+    if (!r.ok) throw new Error(r.error || 'Save failed');
+    markDirty(false); toast('Published! Your site is updated ✓');
+  } catch (ex) { toast(ex.message, 6000); }
+  b.textContent = 'Publish changes'; b.disabled = false;
+});
+$('logoutBtn').addEventListener('click', () => { if (dirty && !confirm('You have unpublished changes. Sign out anyway?')) return; sessionStorage.removeItem('cs_pw'); location.reload(); });
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's' && !$('app').classList.contains('hidden')) { e.preventDefault(); $('saveBtn').click(); } if (e.key === 'Escape' && editing) hideVideo(); });
+
+$('apiLogin').value = API;
+/* auto sign-in if password remembered for this tab */
+if (password) { apiPost({ action: 'login', password }).then(r => { if (r.ok) return enter(); sessionStorage.removeItem('cs_pw'); }).catch(() => {}); }
+</script>
+</body>
+</html>
